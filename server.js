@@ -54,6 +54,10 @@ app.get('/state/:selected_state', (req, res) => {
     ReadFile(path.join(template_dir, 'state.html')).then((template) => {
         let response = template;
         // modify `response` here
+		var stateAb = req.path.substring(7, req.path.length,).toString(); 
+		//var allStates = ["AK", "AL", "AR", "AZ", "CA"]
+		response = response.replace("noimage.jpg", stateAb + ".png");
+		repsonse = response.replace("No Image", "Flag of " + stateAb);
         WriteHtml(res, response);
     }).catch((err) => {
         Write404Error(res);
