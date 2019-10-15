@@ -143,7 +143,9 @@ app.get('/state/:selected_state', (req, res) => {
             response = response.replace("__NUCLEAR_ARR__", getColumn(data,'nuclear'));
             response = response.replace("__PETROLEUM_ARR__", getColumn(data,'petroleum'));
             response = response.replace("__RENEWABLE_ARR__", getColumn(data,'renewable'));
-
+            var stateAb = req.path.substring(7, req.path.length,).toString(); 
+            response = response.replace("noimage.jpg", stateAb + ".png");
+            repsonse = response.replace("No Image", "Flag of " + stateAb);
             WriteHtml(res, response);
         }).catch((err) => {
             console.log(err);
