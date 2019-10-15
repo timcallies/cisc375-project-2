@@ -3,23 +3,23 @@
     "version": "0.0.0",
     "description": "Dynamic Web Server using Node JS",
     "author": {
-        "name": "",
-        "email": ""
+        "name": "Tim Callies",
+        "email": "call3675@stthomas.edu"
     },
     "contributors": [
         {
-            "name": "",
-            "email": ""
+            "name": "Cullen Kittans",
+            "email": "kitt9933@stthomas.edu"
         },
         {
-            "name": "",
-            "email": ""
+            "name": "Tommy Marrinan",
+            "email": "tmarrinan@stthomas.edu"
         }
     ],
     "main": "server.js",
     "repository": {
         "type": "git",
-        "url": ""
+        "url": "https://github.com/timcallies/cisc375-project-2"
     },
     "dependencies": {
         "express": "^4.17.1",

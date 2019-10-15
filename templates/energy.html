@@ -11,8 +11,8 @@
     <script type="application/javascript" src="/scripts/energyvis.js"></script>
     <script type="application/javascript">
         // `energy_type` and object of consumption per year per state --> set these variables equal to appropriate value
-        var energy_type;
-        var energy_counts;  // e.g. {AK: [...], AL: [...], AR: [...], ...}
+        var energy_type = "__ENERGY_TYPE__";
+        var energy_counts = __ENERGY_COUNTS__;  // e.g. {AK: [...], AL: [...], AR: [...], ...}
     </script>
 </head>
 <body onload="Init()">
@@ -120,7 +120,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Data to be inserted here -->
+                    __LIST__
                 </tbody>
             </table>
             </div>

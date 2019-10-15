@@ -11,12 +11,12 @@
     <script type="application/javascript" src="/scripts/yearvis.js"></script>
     <script type="application/javascript">
         // `year` and total counts for entire US --> set these variables equal to appropriate value
-        var year;
-        var coal_count;
-        var natural_count;
-        var nuclear_count;
-        var petroleum_count;
-        var renewable_count;
+        var year = __YEAR__;
+        var coal_count = __COAL__;
+        var natural_gas_count = __NATURAL__;
+        var nuclear_count = __NUCLEAR__;
+        var petroleum_count = __PETROLEUM__;
+        var renewable_count = __RENEWABLE__;
     </script>
 </head>
 <body onload="Init()">
@@ -73,7 +73,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <!-- Data to be inserted here -->
+                    __LIST__
                 </tbody>
             </table>
             </div>
