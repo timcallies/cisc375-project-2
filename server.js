@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
             WriteHtml(res, response);
         });
     }).catch((err) => {
-        Write404Error(res);
+        //Write404Error(res);
     });
 });
 
@@ -144,8 +144,13 @@ app.get('/state/:selected_state', (req, res) => {
             response = response.replace("__PETROLEUM_ARR__", getColumn(data,'petroleum'));
             response = response.replace("__RENEWABLE_ARR__", getColumn(data,'renewable'));
             var stateAb = req.path.substring(7, req.path.length,).toString(); 
+			var allStates = ["AK", "AL", "AR", "AZ", "CA","CO","CT","DC","DE","FL","GA","HI","IA","ID","IL","IN","KS","KY","LA","MA","MD","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
+		var allStateNames =["Alaska", "Alabama","Arkansas","Arizona","California","Colorado","Conneticut", "Washington D.C.","Delaware","Florida","Georgia","Hawaii","Iowa","Idaho","Indiana","Kansas","Kentucky","Louisiana","Maine","Maryland","Michigan","Minnesota","Missouri","Mississippi","Massachussets","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island", "South Carolina","South Dakota","Tennessee", "Texas","Utah","Virginia","Vermont","Washington", "Wisconsin", "West Virginia", "Wyoming"];
             response = response.replace("noimage.jpg", stateAb + ".png");
             repsonse = response.replace("No Image", "Flag of " + stateAb);
+			
+			var index = allStates.indexOf(stateAb);
+		response = response.replace("Yearly Snapshot", allStateNames[index] + " Yearly Snapshot");
             WriteHtml(res, response);
         }).catch((err) => {
             console.log(err);
@@ -204,7 +209,12 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
                 </tr>`
                 
             }
-
+			var energy = ["coal", "natural_gas","nuclear","renewable","petroleum"];
+			
+			var energyType = req.path.substring(13, req.path.length,).toString();
+			console.log(energyType);
+			response = response.replace("noimage.jpg", energyType + ".jpeg");
+            repsonse = response.replace("No Image", energyType);
             
             response = response.replace("__ENERGY_TYPE__", snakeToUpperCase(req.params.selected_energy_type));
             response = response.replace("__LIST__", list);
