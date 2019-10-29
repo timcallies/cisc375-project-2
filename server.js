@@ -62,7 +62,7 @@ app.get('/', (req, res) => {
             WriteHtml(res, response);
         });
     }).catch((err) => {
-        //Write404Error(res);
+        Write404Error(res);
     });
 });
 
@@ -72,11 +72,13 @@ app.get('/year/:selected_year', (req, res) => {
         let response = template;
         let myPromises = [
             getNationalValuesByYear(req.params.selected_year),
-            getIndividualValuesByYear(req.params.selected_year)
+            getIndividualValuesByYear(req.params.selected_year),
+            getNextAndPrev('year',req.params.selected_year)
         ]
 
         Promise.all(myPromises).then((results) =>{
             let list = "";
+            let nextAndPrev = results[2];
             for(state in results[1]) {
                 let thisState = results[1][state];
                 list = list + `<tr>
@@ -91,16 +93,16 @@ app.get('/year/:selected_year', (req, res) => {
             }
 
             response = response.replace("__YEAR__", req.params.selected_year);
+            response = response.replace("__NEXT_YEAR__",nextAndPrev.next);
+            response = response.replace("__PREV_YEAR__",nextAndPrev.prev);
             response = response.replace("__COAL__", results[0].coal);
             response = response.replace("__NATURAL__", results[0].natural_gas);
             response = response.replace("__NUCLEAR__", results[0].nuclear);
             response = response.replace("__PETROLEUM__", results[0].petroleum);
             response = response.replace("__RENEWABLE__", results[0].renewable);
-			
+
             response = response.replace("__LIST__", list);
-			var yearUrl = req.path.substring(6, req.path.length,).toString();
-			console.log(yearUrl);
-			repsonse = response.replace("National Snapshot", yearUrl + " National Snapshot");
+
             WriteHtml(res, response);
         });
     }).catch((err) => {
@@ -136,13 +138,11 @@ app.get('/state/:selected_state', (req, res) => {
                     <td>${year.total}</td>
                 </tr>`;
             }
-			var allStates = ["AK", "AL", "AR", "AZ", "CA","CO","CT","DC","DE","FL","GA","HI","IA","ID","IL","IN","KS","KY","LA","MA","MD","MI","MN","MO","MS","MT","NC","ND","NE","NH","NJ","NM","NV","NY","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VA","VT","WA","WI","WV","WY"];
-			var allStateNames =["Alaska", "Alabama","Arkansas","Arizona","California","Colorado","Conneticut", "Washington D.C.","Delaware","Florida","Georgia","Hawaii","Iowa","Idaho","Indiana","Kansas","Kentucky","Louisiana","Maine","Maryland","Michigan","Minnesota","Missouri","Mississippi","Massachussets","Montana","North Carolina","North Dakota","Nebraska","New Hampshire","New Jersey","New Mexico","Nevada","New York","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island", "South Carolina","South Dakota","Tennessee", "Texas","Utah","Virginia","Vermont","Washington", "Wisconsin", "West Virginia", "Wyoming"];
             response = response.replace("__STATE__", stateName);
             response = response.replace("__LIST__", list);
             response = response.replace("__NEXT_STATE__", nextPrev.next);
-			
-			
+            response = response.replace("__PREV_STATE__", nextPrev.prev);            
+            response = response.replace("__NEXT_STATE__", nextPrev.next);
             response = response.replace("__PREV_STATE__", nextPrev.prev);
             response = response.replace("__COAL_ARR__", getColumn(data,'coal'));
             response = response.replace("__NATURAL_ARR__", getColumn(data,'natural_gas'));
@@ -150,12 +150,8 @@ app.get('/state/:selected_state', (req, res) => {
             response = response.replace("__PETROLEUM_ARR__", getColumn(data,'petroleum'));
             response = response.replace("__RENEWABLE_ARR__", getColumn(data,'renewable'));
             var stateAb = req.path.substring(7, req.path.length,).toString(); 
-			
             response = response.replace("noimage.jpg", stateAb + ".png");
             repsonse = response.replace("No Image", "Flag of " + stateAb);
-			
-			var index = allStates.indexOf(stateAb);
-		response = response.replace("Yearly Snapshot", allStateNames[index] + " Yearly Snapshot");
             WriteHtml(res, response);
         }).catch((err) => {
             console.log(err);
@@ -172,11 +168,13 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
         let response = template;
         
         let myPromises = [
-            getValuesByEnergySource(req.params.selected_energy_type)
+            getValuesByEnergySource(req.params.selected_energy_type),
+            getNextAndPrev('energy',req.params.selected_energy_type)
         ]
 
         Promise.all(myPromises).then((results) => {
             let data = results[0];
+            let nextAndPrev = results[1];
             let list = "";
             let stateSort = {}
             let yearSort = {}
@@ -214,17 +212,13 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
                 </tr>`
                 
             }
-			
-			var energy = ["coal", "natural_gas","nuclear","renewable","petroleum"];
-			var energyUpper = ["Coal", "Natural Gas","Nuclear", "Renewable","Petroleum"];
-			
-			var energyType = req.path.substring(13, req.path.length,).toString();
-			
-			var index = energy.indexOf(energyType);
-			
-			response = response.replace("noimage.jpg", energyType + ".jpeg");
-            repsonse = response.replace("No Image", energyType);
-            response = response.replace("Consumption Snapshot", energyUpper[index] + " Consumption Snapshot");
+
+            response = response.replace("noimage.jpg", req.params.selected_energy_type + ".jpeg");
+            repsonse = response.replace("No Image", req.params.selected_energy_type);
+            response = response.replace("__NEXT_ENERGY_TYPE__", nextAndPrev.next);
+            response = response.replace("__NEXT_ENERGY_TYPE__", snakeToUpperCase(nextAndPrev.next));            
+            response = response.replace("__PREV_ENERGY_TYPE__", nextAndPrev.prev);
+            response = response.replace("__PREV_ENERGY_TYPE__", snakeToUpperCase(nextAndPrev.prev));
             response = response.replace("__ENERGY_TYPE__", snakeToUpperCase(req.params.selected_energy_type));
             response = response.replace("__LIST__", list);
             response = response.replace("__ENERGY_COUNTS__", JSON.stringify(stateSort));
@@ -421,20 +415,55 @@ function snakeToUpperCase(str) {
 
 function getNextAndPrev(field, value) {
     return new Promise((resolve, reject) => {
-        let sql = `SELECT DISTINCT ${field} AS val
-        FROM Consumption`;
-        db.all(sql, (err, data) => {
-            if(err) {
-                reject(err);
-            }
-            else {
-                let out = {};
-                let col = JSON.parse(getColumn(data, 'val'));
-                let idx = col.indexOf(value);
-                out.next = col[(idx + 1) % col.length];
-                out.prev = col[(idx + -1 + col.length) % col.length];
-                resolve(out);
-            }
-        });
-    })
+        if(field === "energy") {
+            let out = {};
+            let col = ["coal", "natural_gas", "nuclear", "petroleum", "renewable"]
+            let idx = col.indexOf(value);
+            out.next = col[(idx + 1) % col.length];
+            out.prev = col[(idx + -1 + col.length) % col.length];
+            resolve(out);
+        }
+
+        else if(field === "year") {
+            let sql = `SELECT DISTINCT year AS val
+            FROM Consumption
+            ORDER BY year`
+            ;
+            db.all(sql, (err, data) => {
+                if(err) {
+                    reject(err);
+                }
+                else {
+                    let out = {};
+                    let col = JSON.parse(getColumn(data, 'val'));
+                    let idx = col.indexOf(parseInt(value));
+
+                    out.next = col[Math.min((idx + 1), col.length)];
+                    out.prev = col[Math.max((idx -1), 0)];
+                    resolve(out);
+                }
+            });
+        }
+
+        else if (field === "state_abbreviation") {
+            let sql = `SELECT DISTINCT state_abbreviation AS val
+            FROM Consumption`;
+            db.all(sql, (err, data) => {
+                if(err) {
+                    reject(err);
+                }
+                else {
+                    let out = {};
+                    let col = JSON.parse(getColumn(data, 'val'));
+                    let idx = col.indexOf(value);
+                    out.next = col[(idx + 1) % col.length];
+                    out.prev = col[(idx + -1 + col.length) % col.length];
+                    resolve(out);
+                }
+            });
+        }
+        else {
+            reject ("Field not found");
+        }
+    });
 }
