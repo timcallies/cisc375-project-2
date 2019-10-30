@@ -24,6 +24,21 @@ var db = new sqlite3.Database(db_filename, sqlite3.OPEN_READONLY, (err) => {
     }
 });
 
+var statesList = [];
+var energyList = ['coal','renewable','natural_gas','nuclear','petroleum'];
+
+db.all('SELECT DISTINCT state_abbreviation AS state FROM Consumption', (err,data) => {
+    if(err) {
+        console.log("Could not get states.");
+    }
+    else {
+        for(let datum of data) {
+            statesList.push(datum.state);
+        }
+    }
+});
+
+
 app.use(express.static(public_dir));
 
 
@@ -68,6 +83,11 @@ app.get('/', (req, res) => {
 
 // GET request handler for '/year/*'
 app.get('/year/:selected_year', (req, res) => {
+    if(req.params.selected_year<1960 || req.params.selected_year > 2017) {
+        WriteCustom404Error(res, `Year ${req.params.selected_year} does not exist in the database.`)
+        return;
+    }
+
     ReadFile(path.join(template_dir, 'year.html')).then((template) => {
         let response = template;
         let myPromises = [
@@ -92,7 +112,7 @@ app.get('/year/:selected_year', (req, res) => {
                 </tr>`;
             }
 
-            response = response.replace("__YEAR__", req.params.selected_year);
+            response = response.replace(/__YEAR__/g, req.params.selected_year);
             response = response.replace("__NEXT_YEAR__",nextAndPrev.next);
             response = response.replace("__PREV_YEAR__",nextAndPrev.prev);
             response = response.replace("__COAL__", results[0].coal);
@@ -104,6 +124,8 @@ app.get('/year/:selected_year', (req, res) => {
             response = response.replace("__LIST__", list);
 
             WriteHtml(res, response);
+        }).catch((err) => {
+            Write404Error(res);
         });
     }).catch((err) => {
         Write404Error(res);
@@ -112,6 +134,10 @@ app.get('/year/:selected_year', (req, res) => {
 
 // GET request handler for '/state/*'
 app.get('/state/:selected_state', (req, res) => {
+    if(statesList.indexOf(req.params.selected_state) < 0) {
+        WriteCustom404Error(res, `State ${req.params.selected_state} does not exist in the database.`);
+        return;
+    }
     ReadFile(path.join(template_dir, 'state.html')).then((template) => {
         let response = template;
 
@@ -138,12 +164,10 @@ app.get('/state/:selected_state', (req, res) => {
                     <td>${year.total}</td>
                 </tr>`;
             }
-            response = response.replace("__STATE__", stateName);
+            response = response.replace(/__STATE__/g, stateName);
             response = response.replace("__LIST__", list);
-            response = response.replace("__NEXT_STATE__", nextPrev.next);
-            response = response.replace("__PREV_STATE__", nextPrev.prev);            
-            response = response.replace("__NEXT_STATE__", nextPrev.next);
-            response = response.replace("__PREV_STATE__", nextPrev.prev);
+            response = response.replace(/__NEXT_STATE__/g, nextPrev.next);
+            response = response.replace(/__PREV_STATE__/g, nextPrev.prev);            
             response = response.replace("__COAL_ARR__", getColumn(data,'coal'));
             response = response.replace("__NATURAL_ARR__", getColumn(data,'natural_gas'));
             response = response.replace("__NUCLEAR_ARR__", getColumn(data,'nuclear'));
@@ -164,6 +188,12 @@ app.get('/state/:selected_state', (req, res) => {
 
 // GET request handler for '/energy-type/*'
 app.get('/energy-type/:selected_energy_type', (req, res) => {
+    if(energyList.indexOf(req.params.selected_energy_type) < 0) {
+        WriteCustom404Error(res, `State ${req.params.selected_energy_type} does not exist in the database.`);
+        
+        return;
+    }
+
     ReadFile(path.join(template_dir, 'energy.html')).then((template) => {
         let response = template;
         
@@ -219,7 +249,7 @@ app.get('/energy-type/:selected_energy_type', (req, res) => {
             response = response.replace("__NEXT_ENERGY_TYPE__", snakeToUpperCase(nextAndPrev.next));            
             response = response.replace("__PREV_ENERGY_TYPE__", nextAndPrev.prev);
             response = response.replace("__PREV_ENERGY_TYPE__", snakeToUpperCase(nextAndPrev.prev));
-            response = response.replace("__ENERGY_TYPE__", snakeToUpperCase(req.params.selected_energy_type));
+            response = response.replace(/__ENERGY_TYPE__/g, snakeToUpperCase(req.params.selected_energy_type));
             response = response.replace("__LIST__", list);
             response = response.replace("__ENERGY_COUNTS__", JSON.stringify(stateSort));
 
@@ -252,6 +282,12 @@ function Write404Error(res) {
     res.end();
 }
 
+function WriteCustom404Error(res, text) {
+    res.writeHead(404, {'Content-Type': 'text/plain'});
+    res.write(text);
+    res.end();
+}
+
 function WriteHtml(res, html) {
     res.writeHead(200, {'Content-Type': 'text/html'});
     res.write(html);
@@ -279,7 +315,12 @@ function getNationalValuesByYear(year){
                 reject(err);
             }
             else {
-                resolve(data);
+                if(data.coal == null) {
+                    reject("Year out of range.");
+                }
+                else{
+                    resolve(data);
+                }
             }
         });
     });
@@ -438,7 +479,7 @@ function getNextAndPrev(field, value) {
                     let col = JSON.parse(getColumn(data, 'val'));
                     let idx = col.indexOf(parseInt(value));
 
-                    out.next = col[Math.min((idx + 1), col.length)];
+                    out.next = col[Math.min((idx + 1), col.length-1)];
                     out.prev = col[Math.max((idx -1), 0)];
                     resolve(out);
                 }
