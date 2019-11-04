@@ -12,7 +12,7 @@ var template_dir = path.join(__dirname, 'templates');
 var db_filename = path.join(__dirname, 'db', 'usenergy.sqlite3');
 
 var app = express();
-var port = 8000;
+var port = process.env.PORT || 8000 ;
 
 // open usenergy.sqlite3 database
 var db = new sqlite3.Database(db_filename, sqlite3.OPEN_READONLY, (err) => {
